@@ -12,6 +12,7 @@ enum TamaChecks {
       try checkAtlasDimensions(atlas)
       try checkAnimationFrames(atlas)
       try checkLookDirections(atlas)
+      try checkPresentationMetrics()
 
       do {
         try checkUnusedCells(atlas)
@@ -78,6 +79,17 @@ enum TamaChecks {
         )
       }
     }
+  }
+
+  private static func checkPresentationMetrics() throws {
+    let regular = SterlingDisplayMetrics.size(for: .regular)
+    let small = SterlingDisplayMetrics.size(for: .small)
+    let large = SterlingDisplayMetrics.size(for: .large)
+
+    try require(regular.width == 128 && regular.height == 139, "unexpected regular pet size")
+    try require(small.width == 96 && small.height == 104.25, "unexpected small pet size")
+    try require(large.width == 160 && large.height == 173.75, "unexpected large pet size")
+    try require(PetAnimation.idle.cyclePause >= 2.5, "idle cycle pause is too short")
   }
 
   private static func require(_ condition: @autoclosure () -> Bool, _ message: String) throws {

@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 import TamaShared
 
 @MainActor
@@ -13,13 +14,14 @@ public final class PetWindowController {
 
   public init() throws {
     let atlas = try SpriteAtlas()
+    let displaySize = SterlingDisplayMetrics.size(for: .regular)
     spriteView = SpriteAnimatorView(atlas: atlas)
     panel = PetPanel(
       contentRect: CGRect(
         x: 0,
         y: 0,
-        width: SterlingAtlasLayout.cellWidth,
-        height: SterlingAtlasLayout.cellHeight
+        width: CGFloat(displaySize.width),
+        height: CGFloat(displaySize.height)
       ),
       styleMask: [.borderless, .nonactivatingPanel],
       backing: .buffered,
@@ -56,12 +58,12 @@ public final class PetWindowController {
   }
 
   public func setScale(_ scale: PetScale) {
+    let displaySize = SterlingDisplayMetrics.size(for: scale)
     let size = CGSize(
-      width: CGFloat(SterlingAtlasLayout.cellWidth) * CGFloat(scale.rawValue),
-      height: CGFloat(SterlingAtlasLayout.cellHeight) * CGFloat(scale.rawValue)
+      width: CGFloat(displaySize.width),
+      height: CGFloat(displaySize.height)
     )
-    panel.setContentSize(size)
-    positionAtBottomRightOfActiveScreen()
+    setPanelSize(size)
     updateMouseHitTesting(at: NSEvent.mouseLocation)
   }
 
@@ -89,7 +91,7 @@ public final class PetWindowController {
   private func applyMovementState() {
     guard panel.isVisible else { return }
 
-    if isMovementPaused {
+    if isMovementPaused || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
       spriteView.showStatic()
     } else {
       spriteView.play(.idle)
@@ -105,6 +107,32 @@ public final class PetWindowController {
       y: visibleFrame.minY + Self.screenPadding
     )
     panel.setFrameOrigin(origin)
+  }
+
+  private func setPanelSize(_ size: CGSize) {
+    guard let screen = activeScreen else {
+      panel.setContentSize(size)
+      return
+    }
+
+    let visibleFrame = screen.visibleFrame
+    let targetFrame = CGRect(
+      x: visibleFrame.maxX - size.width - Self.screenPadding,
+      y: visibleFrame.minY + Self.screenPadding,
+      width: size.width,
+      height: size.height
+    )
+
+    guard panel.isVisible, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+      panel.setFrame(targetFrame, display: true)
+      return
+    }
+
+    NSAnimationContext.runAnimationGroup { context in
+      context.duration = 0.2
+      context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+      panel.animator().setFrame(targetFrame, display: true)
+    }
   }
 
   private var activeScreen: NSScreen? {

@@ -36,6 +36,10 @@ public enum PetAnimation: String, CaseIterable, Sendable {
     }
   }
 
+  public var cyclePause: TimeInterval {
+    self == .idle ? 2.5 : 0
+  }
+
   private var milliseconds: [Int] {
     switch self {
     case .idle: [280, 110, 110, 140, 140, 320]
@@ -67,6 +71,18 @@ public enum SterlingAtlasLayout {
   public static let cellHeight = 208
   public static let pixelWidth = columns * cellWidth
   public static let pixelHeight = rows * cellHeight
+}
+
+public enum SterlingDisplayMetrics {
+  public static let regularWidth = 128.0
+  public static let regularHeight = 139.0
+
+  public static func size(for scale: PetScale) -> (width: Double, height: Double) {
+    (
+      width: regularWidth * scale.rawValue,
+      height: regularHeight * scale.rawValue
+    )
+  }
 }
 
 public enum PetScale: Double, CaseIterable, Identifiable, Sendable {

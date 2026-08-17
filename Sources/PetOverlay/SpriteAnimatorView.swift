@@ -79,12 +79,28 @@ public final class SpriteAnimatorView: NSView {
 
   private func displayCurrentFrame() {
     currentFrame = SpriteFrame(column: frameIndex, row: animation.row)
+    let shouldReduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+
+    if spriteLayer.contents != nil, !shouldReduceMotion {
+      let transition = CATransition()
+      transition.duration = animation == .idle ? 0.1 : 0.07
+      transition.type = .fade
+      transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+      spriteLayer.add(transition, forKey: "frameTransition")
+    }
+
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
     spriteLayer.contents = atlas.image(for: currentFrame)
+    CATransaction.commit()
     onFrameChanged?()
   }
 
   private func scheduleNextFrame() {
-    let duration = animation.frameDurations[frameIndex]
+    var duration = animation.frameDurations[frameIndex]
+    if animation.repeats, frameIndex == animation.frameDurations.count - 1 {
+      duration += animation.cyclePause
+    }
     let timer = Timer(
       timeInterval: duration,
       target: self,

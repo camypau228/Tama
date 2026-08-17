@@ -38,3 +38,24 @@ func onlyReactionAnimationsStopAfterOneCycle() {
   #expect(PetAnimation.idle.repeats)
   #expect(PetAnimation.activeWork.repeats)
 }
+
+@Test
+func regularDisplaySizeIsSmallerThanTheSourceCell() {
+  let regular = SterlingDisplayMetrics.size(for: .regular)
+  let small = SterlingDisplayMetrics.size(for: .small)
+  let large = SterlingDisplayMetrics.size(for: .large)
+
+  #expect(regular.width == 128)
+  #expect(regular.height == 139)
+  #expect(small.width == 96)
+  #expect(large.width == 160)
+  #expect(regular.width < Double(SterlingAtlasLayout.cellWidth))
+  #expect(regular.height < Double(SterlingAtlasLayout.cellHeight))
+}
+
+@Test
+func idleAnimationHasACalmPauseBetweenCycles() {
+  #expect(PetAnimation.idle.cyclePause == 2.5)
+  #expect(PetAnimation.movingRight.cyclePause == 0)
+  #expect(PetAnimation.activeWork.cyclePause == 0)
+}
