@@ -13,6 +13,7 @@ enum TamaChecks {
       try checkAnimationFrames(atlas)
       try checkLookDirections(atlas)
       try checkPresentationMetrics()
+      try checkSafeRoaming()
 
       do {
         try checkUnusedCells(atlas)
@@ -90,6 +91,44 @@ enum TamaChecks {
     try require(small.width == 96 && small.height == 104.25, "unexpected small pet size")
     try require(large.width == 160 && large.height == 173.75, "unexpected large pet size")
     try require(PetAnimation.idle.cyclePause >= 2.5, "idle cycle pause is too short")
+  }
+
+  private static func checkSafeRoaming() throws {
+    let visibleFrame = CGRect(x: 0, y: 0, width: 1_000, height: 700)
+    let petSize = CGSize(width: 128, height: 139)
+
+    let safeDecision = SafeRoamingPlanner.decide(
+      visibleFrame: visibleFrame,
+      petSize: petSize,
+      obstacles: [CGRect(x: 0, y: 0, width: 500, height: 500)],
+      currentOrigin: nil,
+      prefersRight: true
+    )
+    guard case .reposition(let safeOrigin) = safeDecision else {
+      throw CheckError(message: "safe roaming did not choose a free segment")
+    }
+    try require(safeOrigin.x > 640, "safe roaming chose an obstructed segment")
+
+    let blockedDecision = SafeRoamingPlanner.decide(
+      visibleFrame: visibleFrame,
+      petSize: petSize,
+      obstacles: [visibleFrame],
+      currentOrigin: nil,
+      prefersRight: true
+    )
+    try require(blockedDecision == .hide, "safe roaming did not hide without free space")
+
+    let moveDecision = SafeRoamingPlanner.decide(
+      visibleFrame: visibleFrame,
+      petSize: petSize,
+      obstacles: [CGRect(x: 420, y: 0, width: 180, height: 400)],
+      currentOrigin: CGPoint(x: 100, y: 24),
+      prefersRight: true
+    )
+    guard case .move(let moveOrigin) = moveDecision else {
+      throw CheckError(message: "safe roaming did not move inside the current segment")
+    }
+    try require(moveOrigin.x <= 280, "safe roaming crossed an obstacle")
   }
 
   private static func require(_ condition: @autoclosure () -> Bool, _ message: String) throws {
